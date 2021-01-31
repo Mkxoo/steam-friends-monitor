@@ -20,7 +20,7 @@ async function GetFriendsListFromLocal(): Promise<string[]> {
         let vv: string[] = await GetLocalValue(nm, [])
         return vv
     }
-    throw MyErrors.logout
+    return []
 }
 
 //从本地获取当前登录ID的存储的好友列表
@@ -29,7 +29,6 @@ async function SaveFriendsListToLocal(list: string[]): Promise<void> {
         let nm = "fl" + currentID
         return SaveLocalValue(nm, list)
     }
-    throw MyErrors.logout
 }
 
 //从STEAM在线读取好友列表，并设置当前ID为登录的ID
@@ -41,7 +40,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
         x.onloadend = function () {
             if (x.responseURL.includes("/login/")) {
                 console.error("登录掉了！跳转到登录页了", x.responseURL)
-                reject(MyErrors.logout)
+                reject("登录掉了！跳转到登录页了")
                 return
             }
             let html = x.responseText
@@ -51,7 +50,6 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                 let results = reg1.exec(html)
                 if (results == null) {
                     console.error("没有<title>", reg1)
-                    reject(MyErrors.regError)
                 } else {
                     let name = results[1]
                     SaveLocalValue("nm" + currentID, name)
@@ -60,7 +58,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                 let matches = html.match(new RegExp("data-steamid=\"(7[0-9]{16})\".+?href=\"https://steamcommunity.com/.+?\"", "gim"))
                 if (matches == null) {
                     console.error("用户登录成功，却不包含任何好友", x.responseURL)
-                    reject(MyErrors.findnofriends)
+                    reject("用户登录成功，却不包含任何好友")
                     return
                 }
                 let out: string[] = []
@@ -70,7 +68,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                     results = reg2.exec(v)
                     if (results == null) {
                         console.error("出现了无法解析的字符串：", v, reg2)
-                        reject(MyErrors.regError)
+                        reject("出现了无法解析的字符串，请查看内部控制台")
                         return
                     }
                     let id = results[0]
@@ -80,7 +78,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                     results = reg3.exec(v)
                     if (results == null) {
                         console.error("出现了无法解析的字符串：", v, reg3)
-                        reject(MyErrors.regError)
+                        reject("出现了无法解析的字符串，请查看内部控制台")
                         return
                     }
                     let url = results[1]
@@ -88,12 +86,11 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                         url += "/"
                     }
                     SteamIDCache.set(url, id)
-                    console.log("链接绑定：", url, id)
                 })
                 resolve(out)
             } else {
                 console.error("我找不到任何登录的id")
-                reject(MyErrors.findnoid)
+                reject("我找不到任何登录的id")
             }
         }
         x.send()
@@ -109,7 +106,6 @@ async function UpdateFriendsChangeLog(log: FriendsChangeLog) {
         olds.push(log)
         return SaveLocalValue(nm, olds)
     }
-    throw MyErrors.logout
 }
 
 let lastnotice = ""
@@ -122,6 +118,7 @@ setInterval(function () {
         clearLastNotice = 0
     }
 }, 1000)
+
 //　向用户发送简单的推送
 function QuickNotice(tt: string, s: string) {
     let vv = tt + s
@@ -130,7 +127,8 @@ function QuickNotice(tt: string, s: string) {
         return
     }
     console.log("推送：", tt, s)
-    browser.notifications.create({ title: tt, type: "basic", message: s })
+    let img = browser.extension.getURL("icons/main.png")
+    browser.notifications.create({ title: tt, type: "basic", message: s, iconUrl: img })
     lastnotice = vv
     let dt = new Date
     dt.setMinutes(dt.getMinutes() + 1)
@@ -193,7 +191,7 @@ async function DoOnceFriendsListCheck(test: boolean = false) {
                     str += "新增" + v3.toFixed() + "个"
                 }
                 str += "。"
-                browser.notifications.create({ title: "注意：你的Steam好友列表发生了变化。", type: "basic", message: str })
+                QuickNotice("注意：你的Steam好友列表发生了变化。", str)
                 await UpdateFriendsChangeLog(log)
             } else {
                 console.log("检测完毕，好友列表无变化！")
@@ -545,13 +543,57 @@ class SteamChatLogDownloader {
     })
     GetEveryID64ByURL()
     await DoOnceFriendsListCheck()
+    await AutoRemindBackupChatLog()
     setInterval(async function () {
         let id = await GetCurrentIDFromCookie()
         if (id.length == id64len) {
             await DoOnceFriendsListCheck()
+            await AutoRemindBackupChatLog()
         }
     }, 1000 * 60 * 60)
 })()
+
+async function UpdateRemindBackupChatLog() {
+    if (currentID.length == id64len) {
+        let autoremindchatlog = await GetLocalValue("nextremind" + currentID, 0)
+        if (autoremindchatlog > 0) {
+            let nows = new Date
+            let nowtime = nows.getTime()
+            autoremindchatlog = nowtime + 24 * 60 * 60 * 1000 * 6
+            await SaveLocalValue("nextremind" + currentID, autoremindchatlog)
+        }
+    }
+}
+
+async function AutoRemindBackupChatLog() {
+    if (currentID.length == id64len) {
+        let autoremindchatlog: number = await GetLocalValue("nextremind" + currentID, 0)
+        if (autoremindchatlog > 0) {
+            let nows = new Date
+            let nowtime = nows.getTime()
+            let lastdownload: number = await GetLocalValue("downloadtime" + currentID, 0)
+            if (autoremindchatlog < 99999) {
+                if (lastdownload > 9999) {
+                    autoremindchatlog = lastdownload + 24 * 60 * 60 * 1000 * 6
+                } else {
+                    autoremindchatlog = nowtime - 100
+                }
+            }
+            if (nowtime > autoremindchatlog) {
+                let oneday = 24 * 60 * 60 * 1000
+                let str = "您还没有备份过！"
+                if (lastdownload > 9999) {
+                    let passed = nowtime - lastdownload          
+                    passed /= oneday
+                    str = "已经过去了" + passed.toFixed(1) + "天。"
+                }
+                QuickNotice("注意！你需要备份你的steam聊天记录！", str)
+                autoremindchatlog = nowtime + oneday
+            }
+            await SaveLocalValue("nextremind" + currentID, autoremindchatlog)
+        }
+    }
+}
 
 let currentLogDownloader = new SteamChatLogDownloader
 
@@ -594,6 +636,9 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             return
         } else if (str[0] == Messages.startBGLogExport) {
             currentLogDownloader = new SteamChatLogDownloader
+            currentLogDownloader.oncomplete = function () {
+                QuickNotice("久等了！你的steam聊天记录导出已经完成！", "点我去下载。")
+            }
             currentLogDownloader.StartGetChatLog()
         } else if (str[0] == Messages.downloadBGLogExport) {
             if (currentLogDownloader.stat != SteamChatLogDownloaderStat.finished) {
@@ -614,6 +659,7 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             } else {
                 console.error("就nm离谱，这什么下载格式", format)
             }
+            await UpdateRemindBackupChatLog()
             await SaveLocalValue("downloadtime" + currentID, (new Date).getTime())
         } else if (str[0] == Messages.gocheckfriendslist) {
             let test = str.length > 1
@@ -622,3 +668,15 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
     }
 })
 
+browser.browserAction.onClicked.addListener(async function () {
+    let url = browser.extension.getURL("html/options.html")
+    let tabs = await browser.tabs.query({ currentWindow: true })
+    tabs.forEach(function (v) {
+        if (v.id != null && v.url != null) {
+            if (v.url.startsWith(url)) {
+                browser.tabs.remove(v.id)
+            }
+        }
+    })
+    browser.tabs.create({ url: url, active: true })
+})

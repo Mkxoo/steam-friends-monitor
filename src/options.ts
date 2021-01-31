@@ -8,7 +8,8 @@ setInterval(function () {
 let exportpanel = GetElementByID("exportpanel")
 let oldexportStat = ""
 let logined = false
-let ccid64 = "";
+let ccid64 = ""
+let autoremindchatlog = 0;
 
 (async function () {
     let id = await GetCurrentIDFromCookie()
@@ -22,6 +23,7 @@ let ccid64 = "";
         }
         logined = true
     }
+    id += "\n"
     let currentidpanel = GetElementByID("currentidpanel")
     currentidpanel.innerText = id
     if (!logined) {
@@ -29,9 +31,25 @@ let ccid64 = "";
             location.href = "https://steamcommunity.com/login/home/?goto="
         })
     } else {
+        autoremindchatlog = await GetLocalValue("nextremind" + ccid64, 0)
+        let str = "定期备份提醒"
+        if (autoremindchatlog > 0) {
+            str = "关闭" + str
+        } else {
+            str = "开启" + str
+        }
+        AddButton(currentidpanel, str, function () {
+            if (autoremindchatlog > 0) {
+                autoremindchatlog = 0
+            } else {
+                autoremindchatlog = 100
+            }
+            SaveLocalValue("nextremind" + ccid64, autoremindchatlog)
+            location.reload()
+        })
         let changelogpanel = GetElementByID("changelogpanel")
         let lastcheck = await GetLocalValue("lastchecklist" + ccid64, 0)
-        let str = ""
+        str = ""
         if (lastcheck < 1000) {
             str = "你从未检测过你的steam好友列表。"
         } else {
@@ -55,7 +73,7 @@ let ccid64 = "";
         })
         let v1 = await GetLocalValue("cs" + ccid64, []) as FriendsChangeLog[]
         if (v1.length < 1) {
-            changelogpanel.append("抱歉，此处暂无信息。")
+            changelogpanel.append("\n抱歉，此处暂无信息。")
         } else {
             for (let i = v1.length - 1; i >= 0; i--) {
                 let log = v1[i]
@@ -131,12 +149,15 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                         let passed = (new Date).getTime() - dt
                         passed /= 24 * 60 * 60 * 1000
                         if (passed < 0.2) {
-                            str = "您上一次导出到本地是在不到５小时之前。"
+                            str = "您上一次导出到本地是在不到5小时之前。"
                         } else {
                             str = "您上一次导出到本地是在 " + passed.toFixed(1) + " 天前。"
                         }
                     }
-                    exportpanel.innerText = str
+                    if (autoremindchatlog > 0) {
+                        str += "\n您已开启自动提醒，如果你6天以上没有备份聊天记录到本地，我就会发一条推送提醒你。"
+                    }
+                    exportpanel.innerText = str + "\n"
                     AddButton(exportpanel, "点我开始导出", function () {
                         browser.runtime.sendMessage([Messages.startBGLogExport])
                         this.remove()

@@ -51,15 +51,6 @@ async function Sleep(ms: number) {
 }
 
 // 固定的错误参数
-let MyErrors = {
-    logout: "你的登录掉了",
-    findnoid: "找不到网页里面你自己的steamid64",
-    findnofriends: "你一个朋友都没有",
-    timeout: "请求超时",
-    regError: "regex出错"
-}
-
-// 固定的错误参数
 let SteamChatLogDownloaderStat = {
     ready: "待命",
     downloading: "下载中",

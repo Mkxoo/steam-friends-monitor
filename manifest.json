@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "我可以定期检查你的Steam好友列表是否有新增好友或者好友删除。也可以在后台帮您自动保存Steam聊天记录，支持下载聊天记录到本地或同步到您喜欢的云端（比如github您自己的repo）。",
   "icons": {
-    "48": "icons/border-48.png"
+    "48": "icons/main.png"
   },
   "background": {
     "scripts": [
@@ -22,5 +22,12 @@
     "storage",
     "cookies",
     "downloads"
-  ]
+  ],
+  "browser_action": {
+    "browser_style": true,
+    "default_icon": {
+      "48": "icons/main.png"
+    },
+    "default_title": "Steam好友与聊天记录器"
+  }
 }
