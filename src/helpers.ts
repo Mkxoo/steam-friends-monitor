@@ -56,10 +56,18 @@ function CloneArray<T>(a: Array<T>): Array<T> {
 
 // html解码
 function HTMLDecode(html: string): string {
-    let m = document.createElement("div")
-    m.innerHTML = html
-    let s = m.innerText
-    return s
+    let m = new Map<string, string>()
+    m.set("&gt;", ">")
+    m.set("&lt;", "<")
+    m.set("&amp;", "&")
+    m.set("&quot;", "\"")
+    m.set("&nbsp;", " ")
+    m.set("<br.*?>", "\n")
+    m.forEach(function (v, k) {
+        let reg = new RegExp(k, "gim")
+        html = html.replace(reg, v)
+    })
+    return html
 }
 
 // 标准化 CRLF

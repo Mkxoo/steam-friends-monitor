@@ -6,3 +6,12 @@ I can scan your steam friends list and tell you if anyone deletes you or someone
 
 # 引用的第三方库
 - [base64-js](https://github.com/beatgammit/base64-js)   
+
+# Build 构建需要
+- nodejs v14.15.4
+- npm v6.14.10
+- typescript V4.1.3
+```powershell
+npm install    #two @types packages are needed.
+build_pack.ps1  #it use 7z to pack our ext.
+```
