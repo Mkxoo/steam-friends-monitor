@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 好友与聊天记录器</title>
+    <style>
+        .box {
+            border: 1px solid black;
+            margin: 3px;
+            padding: 4px;
+        }
+
+        .title {
+            font-size: larger;
+            background-color: #d4ff95;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <span class="title">你当前登录的steam是</span>
+        <div id="currentidpanel">请启用javascript</div>
+    </div>
+    <div class="box">
+        <span class="title">手动导出所有的好友聊天记录到电脑（只支持最近14天）</span>
+        <div id="exportpanel">
+        </div>
+    </div>
+    <script src="/js/helpers.js"></script>
+    <script src="/js/options.js"></script>
+</body>
+
+</html>
