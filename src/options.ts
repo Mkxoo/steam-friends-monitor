@@ -13,7 +13,7 @@ let autoremindchatlog = 0;
 (async function () {
     let id = await GetCurrentIDFromCookie()
     if (id.length < id64len) {
-        id = "尚未登录Steam，无法工作。请先去登录Steam，再回到本页面（需要刷新）。"
+        id = texts.needlogin
     } else {
         currentID = id
         let nm = await GetLocalValue("nm" + id, "")
@@ -26,16 +26,16 @@ let autoremindchatlog = 0;
     let currentidpanel = GetElementByID("currentidpanel")
     currentidpanel.innerText = id
     if (!logined) {
-        AddButton(currentidpanel, "点我去登录", function () {
+        AddButton(currentidpanel, texts.clicktologin, function () {
             location.href = "https://steamcommunity.com/login/home/?goto="
         })
     } else {
         autoremindchatlog = await GetLocalValue("nextremind" + currentID, 0)
-        let str = "定期备份提醒"
+        let str = ""
         if (autoremindchatlog > 0) {
-            str = "关闭" + str
+            str = texts.closeRemind
         } else {
-            str = "开启" + str
+            str = texts.openRemind
         }
         AddButton(currentidpanel, str, function () {
             if (autoremindchatlog > 0) {
@@ -46,39 +46,39 @@ let autoremindchatlog = 0;
             SaveLocalValue("nextremind" + currentID, autoremindchatlog)
             location.reload()
         })
-        AddButton(currentidpanel, "设置github云端存储", async function () {
+        AddButton(currentidpanel, texts.setupgithubrepo, async function () {
             let empty: GitSettings = {
                 tk: "", username: "", repo: ""
             }
             let v = await GetLocalValue("gh" + currentID, empty) as GitSettings
-            let s1 = prompt("请输入你的 github 用户名：", v.username)
+            let s1 = prompt(texts.inputgithubusername, v.username)
             if (s1 == null) {
                 return
             }
             v.username = s1.trim()
-            s1 = prompt("请输入你的 github 个人 token：", v.tk)
+            s1 = prompt(texts.inputgithubtoken, v.tk)
             if (s1 == null) {
                 return
             }
             v.tk = s1.trim()
-            s1 = prompt("请输入你要使用的 github repo：", v.repo)
+            s1 = prompt(texts.inputgithubrepo, v.repo)
             if (s1 == null) {
                 return
             }
             v.repo = s1.trim()
-            let str = "你填写了完整的github参数，现在我会做一次测试，如果测试成功您会看见结果。请稍等。"
+            let str = texts.githubfinished
             if (v.repo.length < 1 || v.tk.length < 10 || v.username.length < 1) {
-                str = "你填写了不完整的github参数，视作断开与github的连接。"
+                str = texts.githubcanceled
                 v = empty
             }
             await SaveLocalValue("gh" + currentID, v)
             await github.LoadTokenFromStorage()
             if (github.auth.length > 3) {
                 github.ListBranchs().then(function (v) {
-                    QuickNotice("Github 测试成功！", "目前你的仓库里的分支有" + v.length.toString() + "条。")
+                    QuickNotice(texts.githubtestgood, texts.githubbranchtest + v.length.toString())
                 }).catch(function (err) {
                     if (err == null) { err = "null" }
-                    QuickNotice("Github 测试失败！", "错误返回：" + err)
+                    QuickNotice(texts.githubtestfail, texts.githuberror + err)
                 })
             }
             alert(str)
@@ -87,29 +87,29 @@ let autoremindchatlog = 0;
         let lastcheck = await GetLocalValue("lastchecklist" + currentID, 0)
         str = ""
         if (lastcheck < 1000) {
-            str = "你从未检测过你的steam好友列表。"
+            str = texts.younevercheckedyourfriendslist
         } else {
             let passed = (new Date).getTime() - lastcheck
             passed /= 24 * 60 * 60 * 1000
             if (passed < 0.2) {
-                str = "上一次检查你steam好友列表是在不到5小时前。"
+                str = texts.lastcheckflistislt5hours
             } else {
-                str = "上一次检查你steam好友列表是在" + passed.toFixed(1) + "天前。 "
+                str = texts.lastcheckflistisat + passed.toFixed(1) + texts.daysago
             }
         }
-        str += "\n我会在你的浏览器开着的时候自动扫描你的steam好友列表，自动频率是浏览器开启一次，然后每个小时一次。您也可以点下面的按钮手动扫描。\n"
+        str += "\n" + texts.iwouldcheckyourfriendslist + "\n"
         changelogpanel.innerText = str
-        AddButton(changelogpanel, "立刻检测好友列表变化", function () {
+        AddButton(changelogpanel, texts.checkflistatonce, function () {
             browser.runtime.sendMessage([Messages.gocheckfriendslist])
-            changelogpanel.innerText = "请在稍后刷新本页面"
+            changelogpanel.innerText = texts.refreshmelater
         }, true)
-        AddButton(changelogpanel, "假装丢失和新增了好友（测试）", function () {
+        AddButton(changelogpanel, texts.checkflistwithtest, function () {
             browser.runtime.sendMessage([Messages.gocheckfriendslist, "t1"])
-            changelogpanel.innerText = "请在稍后刷新本页面"
+            changelogpanel.innerText = texts.refreshmelater
         }, true)
         let v1 = await GetLocalValue("cs" + currentID, []) as FriendsChangeLog[]
         if (v1.length < 1) {
-            changelogpanel.append("\n抱歉，此处暂无信息。")
+            changelogpanel.append("\n" + texts.nothinghere)
         } else {
             for (let i = v1.length - 1; i >= 0; i--) {
                 let log = v1[i]
@@ -183,47 +183,47 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                     let str = ""
                     let lastdownload = await GetLocalValue("downloadtime" + currentID, null)
                     if (lastdownload == null) {
-                        str = "您还从未通过我来导出您的steam聊天记录到本地"
+                        str = texts.neverusedmetoexport
                     } else {
                         let dt = lastdownload as number
                         let passed = (new Date).getTime() - dt
                         passed /= 24 * 60 * 60 * 1000
                         if (passed < 0.2) {
-                            str = "您上一次导出到本地是在不到5小时之前。"
+                            str = texts.lastexportislt5hours
                         } else {
-                            str = "您上一次导出到本地是在 " + passed.toFixed(1) + " 天前。"
+                            str = + passed.toFixed(1) + texts.daysago
                         }
                     }
                     if (autoremindchatlog > 0) {
-                        str += "\n您已开启自动提醒，如果你6天以上没有备份聊天记录到本地，我就会发一条推送提醒你。"
+                        str += "\n" + texts.youhavereminder
                     }
                     exportpanel.innerText = str + "\n"
-                    AddButton(exportpanel, "点我开始导出", function () {
+                    AddButton(exportpanel, texts.clicktoexport, function () {
                         browser.runtime.sendMessage([Messages.startBGLogExport])
                         this.remove()
                     })
                 }
             } else if (st == SteamChatLogDownloaderStat.downloading) {
-                exportpanel.innerText = "读取中，进度：\n已读取页数：" + strs[4] + "，共有信息条数：" + strs[2] + "，最早的消息位于：" + strs[3]
+                exportpanel.innerText = texts.reading + "\n" + texts.passedpages + strs[4] + " " + texts.messagescount + strs[2] + " " + texts.theoldestmessageisat + strs[3]
             } else if (st == SteamChatLogDownloaderStat.failed) {
-                exportpanel.innerText = "导出信息出错了：" + strs[2] + "\n"
-                AddButton(exportpanel, "重试", function () {
+                exportpanel.innerText = texts.githuberror + strs[2] + "\n"
+                AddButton(exportpanel, texts.retry, function () {
                     browser.runtime.sendMessage([Messages.startBGLogExport])
                     this.remove()
                 })
             } else if (st == SteamChatLogDownloaderStat.finished) {
                 if (!asold) {
-                    exportpanel.innerText = "导出信息完成：\n信息数：" + strs[2] + "，最早的消息位于：" + strs[3] + "\n"
-                    AddButton(exportpanel, "下载为CSV（普通人推荐，保留BOM）", function () {
+                    exportpanel.innerText = texts.finishedexport + "\n" + texts.passedpages + strs[4] + " " + texts.messagescount + strs[2] + " " + texts.theoldestmessageisat + strs[3]
+                    AddButton(exportpanel, texts.csv1, function () {
                         browser.runtime.sendMessage([Messages.downloadBGLogExport, "csvbom"])
                     })
-                    AddButton(exportpanel, "下载为CSV（保留原始数字，无BOM）", function () {
+                    AddButton(exportpanel, texts.csv2, function () {
                         browser.runtime.sendMessage([Messages.downloadBGLogExport, "csv"])
                     })
-                    AddButton(exportpanel, "下载为JSON", function () {
+                    AddButton(exportpanel, texts.json, function () {
                         browser.runtime.sendMessage([Messages.downloadBGLogExport, "json"])
                     })
-                    AddButton(exportpanel, "重新导出", function () {
+                    AddButton(exportpanel, texts.redoexport, function () {
                         browser.runtime.sendMessage([Messages.startBGLogExport])
                         this.remove()
                     })

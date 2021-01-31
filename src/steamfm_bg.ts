@@ -39,8 +39,8 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
     let p = new Promise<string[]>(function (resolve, reject) {
         x.onloadend = function () {
             if (x.responseURL.includes("/login/")) {
-                console.error("登录掉了！跳转到登录页了", x.responseURL)
-                reject("登录掉了！跳转到登录页了")
+                console.error(texts.loginfail, x.responseURL)
+                reject(texts.loginfail)
                 return
             }
             let html = x.responseText
@@ -57,8 +57,8 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                 html = ChangeCRLF(html, " ")
                 let matches = html.match(new RegExp("data-steamid=\"(7[0-9]{16})\".+?href=\"https://steamcommunity.com/.+?\"", "gim"))
                 if (matches == null) {
-                    console.error("用户登录成功，却不包含任何好友", x.responseURL)
-                    reject("用户登录成功，却不包含任何好友")
+                    console.error(texts.goodbutnofriends, x.responseURL)
+                    reject(texts.goodbutnofriends)
                     return
                 }
                 let out: string[] = []
@@ -68,7 +68,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                     results = reg2.exec(v)
                     if (results == null) {
                         console.error("出现了无法解析的字符串：", v, reg2)
-                        reject("出现了无法解析的字符串，请查看内部控制台")
+                        reject(texts.impossiblestr)
                         return
                     }
                     let id = results[0]
@@ -78,7 +78,7 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                     results = reg3.exec(v)
                     if (results == null) {
                         console.error("出现了无法解析的字符串：", v, reg3)
-                        reject("出现了无法解析的字符串，请查看内部控制台")
+                        reject(texts.impossiblestr)
                         return
                     }
                     let url = results[1]
@@ -89,8 +89,8 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
                 })
                 resolve(out)
             } else {
-                console.error("我找不到任何登录的id")
-                reject("我找不到任何登录的id")
+                console.error(texts.cantlogin)
+                reject(texts.cantlogin)
             }
         }
         x.send()
@@ -109,7 +109,7 @@ async function UpdateFriendsChangeLog(log: FriendsChangeLog) {
 }
 
 //一次完整的steam好友检查
-async function DoOnceFriendsListCheck(test: boolean = false) {
+async function DoOnceFriendsListCheck(test: boolean = false, manual: boolean = false) {
     console.log("开启一次steam检查")
     return GetFriendsListFromOnline().then(async function (v1) {
         if (v1.length < 1) {
@@ -154,20 +154,22 @@ async function DoOnceFriendsListCheck(test: boolean = false) {
                 let str = ""
                 let v3 = log.losts.length
                 if (v3 > 0) {
-                    str += "丢失" + v3.toFixed() + "个"
+                    str += texts.losts + v3.toFixed() + texts.ge
                 }
                 v3 = log.gets.length
                 if (v3 > 0) {
                     if (str.length > 0) {
                         str += "，"
                     }
-                    str += "新增" + v3.toFixed() + "个"
+                    str += texts.gets + v3.toFixed() + texts.ge
                 }
-                str += "。"
-                QuickNotice("注意：你的Steam好友列表发生了变化。", str)
+                QuickNotice(texts.yourflisthaschanged, str)
                 await UpdateFriendsChangeLog(log)
             } else {
-                console.log("检测完毕，好友列表无变化！")
+                console.log(texts.yourflistnochange)
+                if (manual) {
+                    QuickNotice(texts.yourflistnochange, texts.youallhave + ov1.length.toString())
+                }
             }
         } else {
             console.log("从本地读取的好友数量为0个，不做处理", currentID)
@@ -176,7 +178,7 @@ async function DoOnceFriendsListCheck(test: boolean = false) {
         await SaveFriendsListToLocal(ov1)
         console.log("处理完成，好友数量：", ov1.length)
     }).catch(function (err) {
-        QuickNotice("出错：STEAM好友列表检查失败！", err)
+        QuickNotice(texts.errorwhencheckflist, err)
     })
 }
 
@@ -313,7 +315,7 @@ class SteamChatLogDownloader {
         x.timeout = 8000
         x.onloadend = function () {
             if (x.responseURL.includes("/login/")) {
-                me.SetError("登录掉了！跳转到登录页了")
+                me.SetError(texts.loginfail)
                 return
             }
             if (x.status == 200) {
@@ -324,7 +326,7 @@ class SteamChatLogDownloader {
                     me.PushToDownloaded(logs)
                     console.log("新增聊天记录：", logs.length)
                 } else {
-                    me.SetError("查不到你的任何聊天记录")
+                    me.SetError(texts.nochatlog)
                     return
                 }
                 let r = new RegExp("data-continuevalue=\"([0-9_]+)\"", "gim")
@@ -338,7 +340,7 @@ class SteamChatLogDownloader {
                     return
                 }
             } else {
-                me.SetError("请求第一页聊天记录，返回非200或超时")
+                me.SetError(texts.checkingindexpagefail)
                 return
             }
         }
@@ -347,7 +349,7 @@ class SteamChatLogDownloader {
     LoadNextPage(ct: string, retry: number) {
         let me = this
         if (retry > 3) {
-            me.SetError("多次访问聊天记录数据皆失败，可能是断网或登录掉了")
+            me.SetError(texts.checkinglogfail)
             return
         }
         console.log("获取聊天记录，重试：", ct, retry, me.title)
@@ -558,13 +560,13 @@ async function AutoRemindBackupChatLog() {
             }
             if (nowtime > autoremindchatlog) {
                 let oneday = 24 * 60 * 60 * 1000
-                let str = "您还没有备份过！"
+                let str = texts.nobackupbefore
                 if (lastdownload > 9999) {
                     let passed = nowtime - lastdownload
                     passed /= oneday
-                    str = "已经过去了" + passed.toFixed(1) + "天。"
+                    str = texts.haspassed + passed.toFixed(1) + texts.days
                 }
-                QuickNotice("注意！你需要备份你的steam聊天记录！", str)
+                QuickNotice(texts.youshouldexport, str)
                 autoremindchatlog = nowtime + oneday
             }
             await SaveLocalValue("nextremind" + currentID, autoremindchatlog)
@@ -612,12 +614,12 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             browser.tabs.sendMessage(tabid, data)
             return
         } else if (str[0] == Messages.startBGLogExport) {
-            currentLogDownloader = new SteamChatLogDownloader("手动任务")
+            currentLogDownloader = new SteamChatLogDownloader(texts.manualjob)
             currentLogDownloader.oncomplete = function () {
                 if (currentLogDownloader.stat == SteamChatLogDownloaderStat.finished) {
-                    QuickNotice("久等了！你的steam聊天记录导出已经完成！", "点我去下载。")
+                    QuickNotice(texts.finishedexport, texts.clicktodownload)
                 } else {
-                    QuickNotice("出错：STEAM聊天记录手动任务获取失败！", currentLogDownloader.errorMessage)
+                    QuickNotice(texts.failonmanualexport, currentLogDownloader.errorMessage)
                 }
             }
             currentLogDownloader.StartGetChatLog()
@@ -644,7 +646,7 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             await SaveLocalValue("downloadtime" + currentID, (new Date).getTime())
         } else if (str[0] == Messages.gocheckfriendslist) {
             let test = str.length > 1
-            DoOnceFriendsListCheck(test)
+            DoOnceFriendsListCheck(test, true)
         }
     }
 })
@@ -669,7 +671,7 @@ function GetDateFileName(dt: Date): string {
 async function DownloadAllAndUploadAll(retry: number, lastError: string = "") {
     if (currentID.length != id64len) { return }
     if (retry > 3) {
-        QuickNotice("后台上传聊天日志任务彻底失败", "明天会继续重试：" + lastError)
+        QuickNotice(texts.failinbackgroundupload, lastError)
     }
     if (github.auth.length < 1) {
         return
@@ -681,7 +683,7 @@ async function DownloadAllAndUploadAll(retry: number, lastError: string = "") {
         return
     }
     console.log("重试后台上传聊天日志任务：", retry)
-    let wk = new SteamChatLogDownloader("后台自动上传任务")
+    let wk = new SteamChatLogDownloader(texts.autojob)
     wk.StartGetChatLog()
     wk.oncomplete = async function () {
         let errors = wk.errorMessage

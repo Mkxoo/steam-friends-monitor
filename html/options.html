@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam 好友与聊天记录器</title>
+    <title>Steam Friends Monitor 好友与聊天记录器</title>
     <link rel="icon" href="/icons/main.png">
     <style>
         .box {
@@ -57,25 +57,38 @@
 
 <body>
     <div class="box">
-        <span class="title">你当前登录的steam是</span>
+        <span class="title">
+            <wb id="yourarenow">你当前登录的steam是</wb>
+        </span>
         <div id="currentidpanel">请启用javascript</div>
     </div>
     <div class="box">
-        <span class="title">关于</span>
-        <a href="https://walkedby.com/" target="_blank">作者：戈登走過去</a>&nbsp;&nbsp;&nbsp;&nbsp;
-        <a href="https://github.com/gordonwalkedby/steam-friends-monitor/" target="_blank">源代码</a>
+        <span class="title">
+            <wb id="about">关于</wb>
+        </span>
+        <a href="https://walkedby.com/" target="_blank">
+            <wb id="madeby">作者：戈登走過去</wb>
+        </a>&nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="https://github.com/gordonwalkedby/steam-friends-monitor/" target="_blank">
+            <wb id="sourcecode">源代码</wb>
+        </a>
     </div>
     <div class="box">
-        <span class="title">手动导出所有的好友聊天记录到电脑（只支持最近14天）</span>
+        <span class="title">
+            <wb id="exporttoyourpc">手动导出所有的好友聊天记录到电脑（只支持最近14天）</wb>
+        </span>
         <div id="exportpanel">
         </div>
     </div>
     <div class="box">
-        <span class="title">你的好友列表变化动态</span>
+        <span class="title">
+            <wb id="yourchanges">你的好友列表变化动态</wb>
+        </span>
         <div id="changelogpanel">
         </div>
     </div>
     <script src="/html/base64js.min.js"></script>
+    <script src="/js/texts.js"></script>
     <script src="/js/helpers.js"></script>
     <script src="/js/github.js"></script>
     <script src="/js/options.js"></script>

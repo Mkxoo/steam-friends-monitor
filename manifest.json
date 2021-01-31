@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Steam好友与聊天记录器",
+  "name": "Steam Friends Monitor 好友与聊天记录器",
   "version": "1.0",
   "description": "我可以定期检查你的Steam好友列表是否有新增好友或者好友删除。也可以在后台帮您自动保存Steam聊天记录，支持下载聊天记录到本地或同步到github您自己的私人repo里。",
   "icons": {
@@ -9,6 +9,7 @@
   "background": {
     "scripts": [
       "html/base64js.min.js",
+      "js/texts.js",
       "js/helpers.js",
       "js/export_chat_log.js",
       "js/steamfm_bg.js",
@@ -30,6 +31,6 @@
     "default_icon": {
       "48": "icons/main.png"
     },
-    "default_title": "Steam好友与聊天记录器"
+    "default_title": "Steam Friends Monitor 好友与聊天记录器"
   }
 }
