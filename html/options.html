@@ -16,6 +16,40 @@
             font-size: larger;
             background-color: #d4ff95;
         }
+
+        .changelogdiv {
+            border: 1px solid black;
+            display: block;
+            padding: 3px;
+            margin: 3px;
+            display: table;
+        }
+
+        .changelogtime {
+            display: table;
+        }
+
+        .changeloggetid,
+        .changeloglostid {
+            display: table;
+            text-decoration: none;
+            color: darkblue;
+            padding: 3px;
+        }
+
+        .changeloggetid {
+            background-color: #baffba;
+        }
+
+        .changeloglostid {
+            background-color: #ffc4c4;
+        }
+
+        body {
+            width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
 </head>
 
@@ -27,6 +61,11 @@
     <div class="box">
         <span class="title">手动导出所有的好友聊天记录到电脑（只支持最近14天）</span>
         <div id="exportpanel">
+        </div>
+    </div>
+    <div class="box">
+        <span class="title">你的好友列表变化动态</span>
+        <div id="changelogpanel">
         </div>
     </div>
     <script src="/js/helpers.js"></script>

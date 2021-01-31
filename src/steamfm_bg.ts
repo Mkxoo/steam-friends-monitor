@@ -138,7 +138,7 @@ function QuickNotice(tt: string, s: string) {
 }
 
 //一次完整的steam好友检查
-async function DoOnceFriendsListCheck() {
+async function DoOnceFriendsListCheck(test: boolean = false) {
     console.log("开启一次steam检查")
     return GetFriendsListFromOnline().then(async function (v1) {
         if (v1.length < 1) {
@@ -146,7 +146,15 @@ async function DoOnceFriendsListCheck() {
             return
         }
         let ov1 = CloneArray<string>(v1)
+        if (test) {
+            v1.push("23331198099466387")
+            v1.push("23341198099466387")
+        }
         let olds = await GetFriendsListFromLocal()
+        if (test) {
+            olds.push("23351198099466387")
+            olds.push("23361198099466387")
+        }
         if (olds.length > 0) {
             let log: FriendsChangeLog = {
                 Time: new Date,
@@ -193,6 +201,7 @@ async function DoOnceFriendsListCheck() {
         } else {
             console.log("从本地读取的好友数量为0个，不做处理", currentID)
         }
+        await SaveLocalValue("lastchecklist" + currentID, (new Date).getTime())
         await SaveFriendsListToLocal(ov1)
         console.log("处理完成，好友数量：", ov1.length)
     }).catch(function (err) {
@@ -437,7 +446,7 @@ class SteamChatLogDownloader {
             }
         })
         me.stat = SteamChatLogDownloaderStat.finished
-        console.log("聊天记录下载完成！", this)
+        console.log("聊天记录获取完成！", this)
         this.oncomplete()
     }
 
@@ -534,6 +543,7 @@ class SteamChatLogDownloader {
     browser.notifications.onClicked.addListener(function () {
         browser.runtime.openOptionsPage()
     })
+    GetEveryID64ByURL()
     await DoOnceFriendsListCheck()
     setInterval(async function () {
         let id = await GetCurrentIDFromCookie()
@@ -541,7 +551,6 @@ class SteamChatLogDownloader {
             await DoOnceFriendsListCheck()
         }
     }, 1000 * 60 * 60)
-    GetEveryID64ByURL()
 })()
 
 let currentLogDownloader = new SteamChatLogDownloader
@@ -605,7 +614,10 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             } else {
                 console.error("就nm离谱，这什么下载格式", format)
             }
-            await SaveLocalValue("downloadtime" + currentID, new Date)
+            await SaveLocalValue("downloadtime" + currentID, (new Date).getTime())
+        } else if (str[0] == Messages.gocheckfriendslist) {
+            let test = str.length > 1
+            DoOnceFriendsListCheck(test)
         }
     }
 })

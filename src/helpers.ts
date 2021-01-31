@@ -71,7 +71,8 @@ let SteamChatLogDownloaderStat = {
 let Messages = {
     BGLogExportStat: "BGLogExportStat",
     startBGLogExport: "startBGLogExport",
-    downloadBGLogExport: "downloadBGLogExport"
+    downloadBGLogExport: "downloadBGLogExport",
+    gocheckfriendslist: "gocheckfriendslist"
 }
 
 // 根据ID返回html元素，如果不存在就throw

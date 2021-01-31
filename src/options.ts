@@ -28,6 +28,66 @@ let ccid64 = "";
         AddButton(currentidpanel, "点我去登录", function () {
             location.href = "https://steamcommunity.com/login/home/?goto="
         })
+    } else {
+        let changelogpanel = GetElementByID("changelogpanel")
+        let lastcheck = await GetLocalValue("lastchecklist" + ccid64, 0)
+        let str = ""
+        if (lastcheck < 1000) {
+            str = "你从未检测过你的steam好友列表。"
+        } else {
+            let passed = (new Date).getTime() - lastcheck
+            passed /= 24 * 60 * 60 * 1000
+            if (passed < 0.2) {
+                str = "上一次检查你steam好友列表是在不到5小时前。"
+            } else {
+                str = "上一次检查你steam好友列表是在" + passed.toFixed(1) + "天前。 "
+            }
+        }
+        str += "\n我会在你的浏览器开着的时候自动扫描你的steam好友列表，自动频率是浏览器开启一次，然后每个小时一次。您也可以点下面的按钮手动扫描。\n"
+        changelogpanel.innerText = str
+        AddButton(changelogpanel, "立刻检测好友列表变化", function () {
+            browser.runtime.sendMessage([Messages.gocheckfriendslist])
+            changelogpanel.innerText = "请在稍后刷新本页面"
+        })
+        AddButton(changelogpanel, "假装丢失和新增了好友（测试）", function () {
+            browser.runtime.sendMessage([Messages.gocheckfriendslist, "t1"])
+            changelogpanel.innerText = "请在稍后刷新本页面"
+        })
+        let v1 = await GetLocalValue("cs" + ccid64, []) as FriendsChangeLog[]
+        if (v1.length < 1) {
+            changelogpanel.append("抱歉，此处暂无信息。")
+        } else {
+            for (let i = v1.length - 1; i >= 0; i--) {
+                let log = v1[i]
+                let div = document.createElement("div")
+                div.className = "changelogdiv"
+                changelogpanel.appendChild(div)
+                let span = document.createElement("span")
+                span.className = "changelogtime"
+                span.innerText = log.Time.toLocaleString()
+                div.appendChild(span)
+                if (log.gets.length > 0) {
+                    log.gets.forEach(function (id) {
+                        let a1 = document.createElement("a")
+                        a1.className = "changeloggetid"
+                        a1.href = "https://steamcommunity.com/profiles/" + id
+                        a1.innerText = id
+                        a1.target = "_blank"
+                        div.appendChild(a1)
+                    })
+                }
+                if (log.losts.length > 0) {
+                    log.losts.forEach(function (id) {
+                        let a1 = document.createElement("a")
+                        a1.className = "changeloglostid"
+                        a1.href = "https://steamcommunity.com/profiles/" + id
+                        a1.innerText = id
+                        a1.target = "_blank"
+                        div.appendChild(a1)
+                    })
+                }
+            }
+        }
     }
 })()
 
@@ -67,9 +127,9 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                     if (lastdownload == null) {
                         str = "您还从未通过我来导出您的steam聊天记录到本地"
                     } else {
-                        let dt = lastdownload as Date
-                        let passed = (new Date).getTime() - dt.getTime()
-                        passed /= 24 * 60 * 60 * 100
+                        let dt = lastdownload as number
+                        let passed = (new Date).getTime() - dt
+                        passed /= 24 * 60 * 60 * 1000
                         if (passed < 0.2) {
                             str = "您上一次导出到本地是在不到５小时之前。"
                         } else {
