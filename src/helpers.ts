@@ -1,4 +1,5 @@
 const id64len = 17
+let currentID = ""
 let showMessageLog = false
 
 //根据名字，获取一个存储在storage.local的值
@@ -15,6 +16,33 @@ async function GetLocalValue(name: string, fallback: any = null): Promise<any> {
 async function SaveLocalValue(name: string, v: any) {
     let input = { [name]: v }
     return browser.storage.local.set(input)
+}
+
+let lastnotice = ""
+let clearLastNotice = 0
+setInterval(function () {
+    if (clearLastNotice < 1000) { return }
+    let nows = new Date
+    if (nows.getTime() > clearLastNotice) {
+        lastnotice = ""
+        clearLastNotice = 0
+    }
+}, 1000)
+
+//　向用户发送简单的推送
+function QuickNotice(tt: string, s: string) {
+    let vv = tt + s
+    if (lastnotice == vv) {
+        console.error("尝试推送被拒绝，发送过快：", tt, s)
+        return
+    }
+    console.log("推送：", tt, s)
+    let img = browser.extension.getURL("icons/main.png")
+    browser.notifications.create({ title: tt, type: "basic", message: s, iconUrl: img })
+    lastnotice = vv
+    let dt = new Date
+    dt.setMinutes(dt.getMinutes() + 1)
+    clearLastNotice = dt.getTime()
 }
 
 // 复制一个数组
@@ -51,7 +79,7 @@ async function Sleep(ms: number) {
 }
 
 // 固定的错误参数
-let SteamChatLogDownloaderStat = {
+const SteamChatLogDownloaderStat = {
     ready: "待命",
     downloading: "下载中",
     finished: "工作完成",
@@ -59,7 +87,7 @@ let SteamChatLogDownloaderStat = {
 }
 
 // 内部发送的消息头
-let Messages = {
+const Messages = {
     BGLogExportStat: "BGLogExportStat",
     startBGLogExport: "startBGLogExport",
     downloadBGLogExport: "downloadBGLogExport",
@@ -90,7 +118,7 @@ async function GetCurrentIDFromCookie(): Promise<string> {
 // 把字符串引号引起来，如果字符串整个是一个数字，就在前面加一个'
 function Quote(t: string, num2str: boolean): string {
     if (t.length > 0) {
-        t = t.replace(/\"/gim, "\\\"")
+        t = t.replace(/\"/gim, "\"\"")
         if (num2str) {
             let r = new RegExp("^[0-9\.]+$", "gim")
             if (r.test(t)) {

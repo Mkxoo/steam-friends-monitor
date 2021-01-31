@@ -8,7 +8,6 @@ setInterval(function () {
 let exportpanel = GetElementByID("exportpanel")
 let oldexportStat = ""
 let logined = false
-let ccid64 = ""
 let autoremindchatlog = 0;
 
 (async function () {
@@ -16,7 +15,7 @@ let autoremindchatlog = 0;
     if (id.length < id64len) {
         id = "尚未登录Steam，无法工作。请先去登录Steam，再回到本页面（需要刷新）。"
     } else {
-        ccid64 = id
+        currentID = id
         let nm = await GetLocalValue("nm" + id, "")
         if (nm.length > 0) {
             id = id + ": " + nm
@@ -31,7 +30,7 @@ let autoremindchatlog = 0;
             location.href = "https://steamcommunity.com/login/home/?goto="
         })
     } else {
-        autoremindchatlog = await GetLocalValue("nextremind" + ccid64, 0)
+        autoremindchatlog = await GetLocalValue("nextremind" + currentID, 0)
         let str = "定期备份提醒"
         if (autoremindchatlog > 0) {
             str = "关闭" + str
@@ -44,11 +43,48 @@ let autoremindchatlog = 0;
             } else {
                 autoremindchatlog = 100
             }
-            SaveLocalValue("nextremind" + ccid64, autoremindchatlog)
+            SaveLocalValue("nextremind" + currentID, autoremindchatlog)
             location.reload()
         })
+        AddButton(currentidpanel, "设置github云端存储", async function () {
+            let empty: GitSettings = {
+                tk: "", username: "", repo: ""
+            }
+            let v = await GetLocalValue("gh" + currentID, empty) as GitSettings
+            let s1 = prompt("请输入你的 github 用户名：", v.username)
+            if (s1 == null) {
+                return
+            }
+            v.username = s1.trim()
+            s1 = prompt("请输入你的 github 个人 token：", v.tk)
+            if (s1 == null) {
+                return
+            }
+            v.tk = s1.trim()
+            s1 = prompt("请输入你要使用的 github repo：", v.repo)
+            if (s1 == null) {
+                return
+            }
+            v.repo = s1.trim()
+            let str = "你填写了完整的github参数，现在我会做一次测试，如果测试成功您会看见结果。请稍等。"
+            if (v.repo.length < 1 || v.tk.length < 10 || v.username.length < 1) {
+                str = "你填写了不完整的github参数，视作断开与github的连接。"
+                v = empty
+            }
+            await SaveLocalValue("gh" + currentID, v)
+            await github.LoadTokenFromStorage()
+            if (github.auth.length > 3) {
+                github.ListBranchs().then(function (v) {
+                    QuickNotice("Github 测试成功！", "目前你的仓库里的分支有" + v.length.toString() + "条。")
+                }).catch(function (err) {
+                    if (err == null) { err = "null" }
+                    QuickNotice("Github 测试失败！", "错误返回：" + err)
+                })
+            }
+            alert(str)
+        })
         let changelogpanel = GetElementByID("changelogpanel")
-        let lastcheck = await GetLocalValue("lastchecklist" + ccid64, 0)
+        let lastcheck = await GetLocalValue("lastchecklist" + currentID, 0)
         str = ""
         if (lastcheck < 1000) {
             str = "你从未检测过你的steam好友列表。"
@@ -66,12 +102,12 @@ let autoremindchatlog = 0;
         AddButton(changelogpanel, "立刻检测好友列表变化", function () {
             browser.runtime.sendMessage([Messages.gocheckfriendslist])
             changelogpanel.innerText = "请在稍后刷新本页面"
-        })
+        }, true)
         AddButton(changelogpanel, "假装丢失和新增了好友（测试）", function () {
             browser.runtime.sendMessage([Messages.gocheckfriendslist, "t1"])
             changelogpanel.innerText = "请在稍后刷新本页面"
-        })
-        let v1 = await GetLocalValue("cs" + ccid64, []) as FriendsChangeLog[]
+        }, true)
+        let v1 = await GetLocalValue("cs" + currentID, []) as FriendsChangeLog[]
         if (v1.length < 1) {
             changelogpanel.append("\n抱歉，此处暂无信息。")
         } else {
@@ -109,13 +145,17 @@ let autoremindchatlog = 0;
     }
 })()
 
-function AddButton(parent: HTMLElement, text: string, onclick: (this: HTMLButtonElement) => void) {
+function AddButton(parent: HTMLElement, text: string, onclick: (this: HTMLButtonElement) => void, addline: boolean = false) {
     let button = document.createElement("button")
     parent.appendChild(button)
     button.innerText = text
     button.style.padding = "2px"
     button.style.margin = "2px"
     button.addEventListener("click", onclick)
+    if (addline) {
+        let br = document.createElement("br")
+        parent.appendChild(br)
+    }
 }
 
 browser.runtime.onMessage.addListener(async function (m, sender) {
@@ -141,7 +181,7 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             if (st == SteamChatLogDownloaderStat.ready) {
                 if (!asold) {
                     let str = ""
-                    let lastdownload = await GetLocalValue("downloadtime" + ccid64, null)
+                    let lastdownload = await GetLocalValue("downloadtime" + currentID, null)
                     if (lastdownload == null) {
                         str = "您还从未通过我来导出您的steam聊天记录到本地"
                     } else {

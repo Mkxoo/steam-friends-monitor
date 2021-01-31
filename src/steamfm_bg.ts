@@ -1,4 +1,4 @@
-let currentID = ""
+
 let SteamIDCache = new Map<string, string>()
 
 // 从 HTML 中获取 STEAMID64，返回是否成功，不适用于 help.steampowered
@@ -106,33 +106,6 @@ async function UpdateFriendsChangeLog(log: FriendsChangeLog) {
         olds.push(log)
         return SaveLocalValue(nm, olds)
     }
-}
-
-let lastnotice = ""
-let clearLastNotice = 0
-setInterval(function () {
-    if (clearLastNotice < 1000) { return }
-    let nows = new Date
-    if (nows.getTime() > clearLastNotice) {
-        lastnotice = ""
-        clearLastNotice = 0
-    }
-}, 1000)
-
-//　向用户发送简单的推送
-function QuickNotice(tt: string, s: string) {
-    let vv = tt + s
-    if (lastnotice == vv) {
-        console.error("尝试推送被拒绝，发送过快：", tt, s)
-        return
-    }
-    console.log("推送：", tt, s)
-    let img = browser.extension.getURL("icons/main.png")
-    browser.notifications.create({ title: tt, type: "basic", message: s, iconUrl: img })
-    lastnotice = vv
-    let dt = new Date
-    dt.setMinutes(dt.getMinutes() + 1)
-    clearLastNotice = dt.getTime()
 }
 
 //一次完整的steam好友检查
@@ -286,11 +259,11 @@ async function GetEveryID64ByURL() {
 // Steam聊天记录下载器，使用之前务必登录先
 class SteamChatLogDownloader {
     //新建实例的时候要设置结束日期，不设置就是获取20天（官方实际为最多14天）
-    constructor(stops: Date | null = null) {
-        if (stops != null) {
-            this.stops = stops.getTime()
-        }
+    constructor(title: string, stops: number = 0) {
+        this.stops = stops
+        this.title = title
     }
+    title: string = ""
     stops: number = 0
     passedPages: number = 0
     oldestTime: number = (new Date).getTime()
@@ -318,6 +291,14 @@ class SteamChatLogDownloader {
         })
     }
 
+    SetError(s: string) {
+        let me = this
+        me.errorMessage = s
+        console.error("出错：", me.title, s)
+        me.stat = SteamChatLogDownloaderStat.failed
+        me.oncomplete()
+    }
+
     //从获取聊天记录第一页开始做起
     StartGetChatLog() {
         let me = this
@@ -325,16 +306,14 @@ class SteamChatLogDownloader {
             console.error("已经开始过了，不能再开始了！需要再新建一个实例！")
             return
         }
-        console.log("获取第一页聊天记录")
+        console.log("获取第一页聊天记录", me.title)
         me.stat = SteamChatLogDownloaderStat.downloading
         let x = new XMLHttpRequest()
         x.open("GET", "https://help.steampowered.com/zh-cn/accountdata/GetFriendMessagesLog")
         x.timeout = 8000
         x.onloadend = function () {
             if (x.responseURL.includes("/login/")) {
-                me.errorMessage = "登录掉了！"
-                QuickNotice("出错：STEAM聊天记录获取失败！", "登录掉了！跳转到登录页了")
-                me.stat = SteamChatLogDownloaderStat.failed
+                me.SetError("登录掉了！跳转到登录页了")
                 return
             }
             if (x.status == 200) {
@@ -345,9 +324,7 @@ class SteamChatLogDownloader {
                     me.PushToDownloaded(logs)
                     console.log("新增聊天记录：", logs.length)
                 } else {
-                    me.errorMessage = "没有任何聊天记录"
-                    QuickNotice("出错：STEAM聊天记录获取失败！", "查不到你的任何聊天记录")
-                    me.stat = SteamChatLogDownloaderStat.failed
+                    me.SetError("查不到你的任何聊天记录")
                     return
                 }
                 let r = new RegExp("data-continuevalue=\"([0-9_]+)\"", "gim")
@@ -361,9 +338,7 @@ class SteamChatLogDownloader {
                     return
                 }
             } else {
-                me.errorMessage = "请求第一页聊天记录，返回非200或超时"
-                QuickNotice("出错：STEAM聊天记录获取失败！", "第一页就失败了。")
-                me.stat = SteamChatLogDownloaderStat.failed
+                me.SetError("请求第一页聊天记录，返回非200或超时")
                 return
             }
         }
@@ -372,12 +347,10 @@ class SteamChatLogDownloader {
     LoadNextPage(ct: string, retry: number) {
         let me = this
         if (retry > 3) {
-            me.stat = SteamChatLogDownloaderStat.failed
-            me.errorMessage = "多次访问聊天记录数据皆失败，可能是断网或登录掉了"
-            QuickNotice("出错：STEAM聊天记录获取失败！", "多次访问聊天记录数据皆失败")
+            me.SetError("多次访问聊天记录数据皆失败，可能是断网或登录掉了")
             return
         }
-        console.log("获取聊天记录，重试：", ct, retry)
+        console.log("获取聊天记录，重试：", ct, retry, me.title)
         let x = new XMLHttpRequest
         x.open("GET", "https://help.steampowered.com/zh-cn/accountdata/AjaxLoadMoreData/?url=GetFriendMessagesLog&continue=" + ct)
         x.timeout = 5000
@@ -543,12 +516,16 @@ class SteamChatLogDownloader {
     })
     GetEveryID64ByURL()
     await DoOnceFriendsListCheck()
+    await github.LoadTokenFromStorage()
     await AutoRemindBackupChatLog()
+    await DownloadAllAndUploadAll(0)
     setInterval(async function () {
         let id = await GetCurrentIDFromCookie()
         if (id.length == id64len) {
             await DoOnceFriendsListCheck()
+            await github.LoadTokenFromStorage()
             await AutoRemindBackupChatLog()
+            await DownloadAllAndUploadAll(0)
         }
     }, 1000 * 60 * 60)
 })()
@@ -583,7 +560,7 @@ async function AutoRemindBackupChatLog() {
                 let oneday = 24 * 60 * 60 * 1000
                 let str = "您还没有备份过！"
                 if (lastdownload > 9999) {
-                    let passed = nowtime - lastdownload          
+                    let passed = nowtime - lastdownload
                     passed /= oneday
                     str = "已经过去了" + passed.toFixed(1) + "天。"
                 }
@@ -595,7 +572,7 @@ async function AutoRemindBackupChatLog() {
     }
 }
 
-let currentLogDownloader = new SteamChatLogDownloader
+let currentLogDownloader = new SteamChatLogDownloader("")
 
 browser.runtime.onMessage.addListener(async function (m, sender) {
     let tab = sender.tab
@@ -635,9 +612,13 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             browser.tabs.sendMessage(tabid, data)
             return
         } else if (str[0] == Messages.startBGLogExport) {
-            currentLogDownloader = new SteamChatLogDownloader
+            currentLogDownloader = new SteamChatLogDownloader("手动任务")
             currentLogDownloader.oncomplete = function () {
-                QuickNotice("久等了！你的steam聊天记录导出已经完成！", "点我去下载。")
+                if (currentLogDownloader.stat == SteamChatLogDownloaderStat.finished) {
+                    QuickNotice("久等了！你的steam聊天记录导出已经完成！", "点我去下载。")
+                } else {
+                    QuickNotice("出错：STEAM聊天记录手动任务获取失败！", currentLogDownloader.errorMessage)
+                }
             }
             currentLogDownloader.StartGetChatLog()
         } else if (str[0] == Messages.downloadBGLogExport) {
@@ -680,3 +661,106 @@ browser.browserAction.onClicked.addListener(async function () {
     })
     browser.tabs.create({ url: url, active: true })
 })
+
+function GetDateFileName(dt: Date): string {
+    return dt.getUTCFullYear().toString() + "/" + (dt.getUTCMonth() + 1).toString().padStart(2, "0") + "/" + (dt.getUTCDate()).toString().padStart(2, "0")
+}
+
+async function DownloadAllAndUploadAll(retry: number, lastError: string = "") {
+    if (currentID.length != id64len) { return }
+    if (retry > 3) {
+        QuickNotice("后台上传聊天日志任务彻底失败", "明天会继续重试：" + lastError)
+    }
+    if (github.auth.length < 1) {
+        return
+    }
+    let nextupload: number = await GetLocalValue("nextupload" + currentID, 0)
+    let nows = new Date().getTime()
+    console.log("下一次上传时间：", nextupload)
+    if (nextupload > nows) {
+        return
+    }
+    console.log("重试后台上传聊天日志任务：", retry)
+    let wk = new SteamChatLogDownloader("后台自动上传任务")
+    wk.StartGetChatLog()
+    wk.oncomplete = async function () {
+        let errors = wk.errorMessage
+        if (wk.stat == SteamChatLogDownloaderStat.finished) {
+            let t1 = BackgroundDownloadAndUpload(wk.downloadedlogs).catch(function (err) {
+                errors = err
+            })
+            await t1
+        }
+        if (errors.length > 0) {
+            DownloadAllAndUploadAll(retry + 1, errors)
+        } else {
+            let tomorrow = new Date
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            await SaveLocalValue("nextupload" + currentID, tomorrow.getTime())
+            console.log("后台上传任务完成")
+        }
+    }
+}
+
+// 信息上传到云端，这不会上传UTC日期是今天的，最起码要昨天才行
+async function BackgroundDownloadAndUpload(logs: SteamChatMessage[]) {
+    let today = GetDateFileName(new Date)
+    let days = new Map<string, SteamChatMessage[]>()
+    logs.sort(function (a, b) {
+        if (a.UTCTime > b.UTCTime) {
+            return 1
+        } else if (a.UTCTime < b.UTCTime) {
+            return -1
+        }
+        return 0
+    })
+    logs.forEach(function (v) {
+        let dt = new Date(v.UTCTime)
+        let str = GetDateFileName(dt)
+        if (str == today) {
+            return
+        }
+        str += ".csv"
+        let array = days.get(str) || []
+        array.push(v)
+        days.set(str, array)
+    })
+    if (days.size < 1) { return }
+    let uploaded: string[] = await GetLocalValue("githubuploaded" + currentID, [])
+    let keys = GetMapKeys(days)
+    let index = 0
+    while (true) {
+        let k = keys[index]
+        if (uploaded.includes(k)) {
+            continue
+        }
+        let v = days.get(k)
+        if (v == null) {
+            continue
+        }
+        let csv = BuildCSV(v, false)
+        let sha = ""
+        let errors = ""
+        let t1 = github.GetOnlineFileSHA(k).then(function (v1) {
+            sha = v1
+        }).catch(function (err) {
+            console.error("github 获取sha出错：", err)
+            errors = err
+        })
+        await t1
+        if (errors.length > 0) { throw errors }
+        t1 = github.CreateOrUpdateTextFile(k, csv, sha).then(function () {
+            uploaded.push(k)
+        }).catch(function (err) {
+            console.error("github 上传文件出错：", err)
+            errors = err
+        })
+        await t1
+        if (errors.length > 0) { throw errors }
+        index += 1
+        if (index >= keys.length) {
+            break
+        }
+    }
+    await SaveLocalValue("githubuploaded" + currentID, uploaded)
+}

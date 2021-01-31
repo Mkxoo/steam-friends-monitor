@@ -8,9 +8,11 @@
   },
   "background": {
     "scripts": [
+      "js/base64js.min.js",
       "js/helpers.js",
       "js/export_chat_log.js",
-      "js/steamfm_bg.js"
+      "js/steamfm_bg.js",
+      "js/github.js"
     ]
   },
   "permissions": [

@@ -3,4 +3,4 @@ node_modules
 .vscode
 package-lock.json
 test_links.txt
-js
+token.txt

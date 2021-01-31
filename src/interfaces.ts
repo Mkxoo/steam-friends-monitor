@@ -20,3 +20,15 @@ interface SteamChatLogDataJSON {
     html: string,
     continue: string | null
 }
+
+interface GitSettings {
+    username: string,
+    repo: string,
+    tk: string
+}
+
+interface GitHubUpdateBody {
+    message: string,
+    content: string,
+    sha?: string
+}
