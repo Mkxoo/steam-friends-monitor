@@ -13,6 +13,9 @@ I can scan your steam friends list and tell you if anyone deletes you or someone
 其他兼容的浏览器有：WaterFox ，然后我就不知道了。      
 Chrome or Edge is not supported.    
 
+# 安装 To Install   
+https://addons.mozilla.org/firefox/addon/sfm/  
+
 # 截图 Screenshots
 ![](https://s3.ax1x.com/2021/02/01/yZHDU0.png)  
 ![](https://s3.ax1x.com/2021/02/01/yZH1Et.png)  
