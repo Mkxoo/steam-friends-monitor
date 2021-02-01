@@ -216,7 +216,7 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                     })
                 }
             } else if (st == SteamChatLogDownloaderStat.downloading) {
-                exportpanel.innerText = texts.reading + "\n" + texts.passedpages + strs[4] + " " + texts.messagescount + strs[2] + " " + texts.theoldestmessageisat + strs[3]
+                exportpanel.innerText = texts.reading + "\n" + texts.passedpages + strs[4] + "\n" + texts.messagescount + strs[2] + "\n" + texts.theoldestmessageisat + strs[3]
             } else if (st == SteamChatLogDownloaderStat.failed) {
                 exportpanel.innerText = texts.githuberror + strs[2] + "\n"
                 AddButton(exportpanel, texts.retry, function () {
@@ -225,7 +225,7 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                 })
             } else if (st == SteamChatLogDownloaderStat.finished) {
                 if (!asold) {
-                    exportpanel.innerText = texts.finishedexport + "\n" + texts.passedpages + strs[4] + " " + texts.messagescount + strs[2] + " " + texts.theoldestmessageisat + strs[3]
+                    exportpanel.innerText = texts.finishedexport + "\n" + texts.passedpages + strs[4] + "\n" + texts.messagescount + strs[2] + "\n" + texts.theoldestmessageisat + strs[3]
                     AddButton(exportpanel, texts.csv1, function () {
                         browser.runtime.sendMessage([Messages.downloadBGLogExport, "csvbom"])
                     })

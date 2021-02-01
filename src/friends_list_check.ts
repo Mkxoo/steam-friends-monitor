@@ -179,14 +179,24 @@ async function DoOnceFriendsListCheck(test: boolean = false, manual: boolean = f
                     log.losts.push(v2)
                 })
                 let realLost: string[] = []
+                let fakeLost: string[] = []
                 for (let i = 0; i < log.losts.length; i++) {
                     let id = log.losts[i]
                     let isreal = await CheckIfRealLostFriend(id)
                     if (isreal) {
                         realLost.push(id)
+                    } else {
+                        fakeLost.push(id)
                     }
                 }
                 log.losts = realLost
+                if (fakeLost.length > 0) {
+                    fakeLost.forEach(function (v) {
+                        if (ov1.includes(v) == false) {
+                            ov1.push(v)
+                        }
+                    })
+                }
             }
             if (changed) {
                 let str = ""

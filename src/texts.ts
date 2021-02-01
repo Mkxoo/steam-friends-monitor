@@ -278,7 +278,7 @@ if (lang.startsWith("zh")) {
     texts.messagescount = "メッセージ数："
     texts.theoldestmessageisat = "最も古いメッセージ："
     texts.retry = "リトライする"
-    texts.finishedexport = "書き出した数："
+    texts.finishedexport = "Steamチャットログの書き出しは完了しました。"
     texts.csv1 = "CSV形式でダウンロードします（Excelに互換性あり）"
     texts.csv2 = "CSV形式でダウンロードします（Excel以外に互換性あり）"
     texts.json = "JSON形式でダウンロードします"
@@ -313,7 +313,13 @@ if (lang.startsWith("zh")) {
     texts.sourcecode = "ソースコード"
     texts.exporttoyourpc = "Steamチャットログ書き出し（14日で1回）"
     texts.yourchanges = "Steamフレンドリストが変化"
-}
+    texts.nextgithubupload = "次のgithubアップロードは："
+    texts.uploading = "アップロード中："
+    texts.uploadover = "アップロード完成するまであと"
+    texts.githubmiss = "githubの設置を終わりませんでしたから設置をお願いいたします。"
+    texts.startGithubUpload = "いますぐgithubアップロードします"
+    texts.githubstatus = "Githubに同期します"
+};
 
 (function () {
     let wbs = document.getElementsByTagName("wb")
