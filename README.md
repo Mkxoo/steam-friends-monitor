@@ -17,4 +17,6 @@ build_pack.ps1  #it use 7z to pack our ext.
 ```
 
 # 特别鸣谢
-- [0xAA55](https://www.0xaa55.com/)：提供了日语翻译，以及提供了让我活下去的地方，要不是她，我可能已经被父母送进精神病院长期不能接触电子设备了  
+- [0xAA55](https://www.0xaa55.com/)：提供了日语翻译，以及提供了让我活下去的地方，要不是她，我可能已经被父母送进精神病院长期不能接触电子设备了   
+- [lifegpc](https://github.com/lifegpc)：告诉我天底下还有 base64-js 这种好东西，爱了。    
+
