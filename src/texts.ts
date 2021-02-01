@@ -70,7 +70,13 @@ let texts = {
     exporttoyourpc: "Export your chat log (14 days from today)",
     yourchanges: "Your steam friends list changes",
     updatefound: "New Version Found!",
-    goupdate: "Goto Download New Version"
+    goupdate: "Goto Download New Version",
+    nextgithubupload: "Next time github upload is at:",
+    uploading: "Uploading to github:",
+    uploadover: "Uploading to github finished at ",
+    githubmiss: "You didn't set up github.",
+    startGithubUpload: "Start github upload at once.",
+    githubstatus: "Sync to github"
 };
 
 let lang = window.navigator.language.toLowerCase()
@@ -149,6 +155,12 @@ if (lang.startsWith("zh")) {
         texts.exporttoyourpc = "手动导出所有的好友聊天记录到电脑（只支持最近14天）"
         texts.yourchanges = "你的好友列表变化动态"
         texts.updatefound = "发现新版本可更新！"
+        texts.nextgithubupload = "下次自动github上传安排在："
+        texts.uploading = "上传中："
+        texts.uploadover = "上传完成于 "
+        texts.githubmiss = "你还没有绑定github"
+        texts.startGithubUpload = "立刻开始github上传"
+        texts.githubstatus = "同步到Github"
     } else {
         texts.title = "Steam好友與聊天記錄器"
         texts.updatefound = "發現新版本可更新！"
@@ -222,6 +234,12 @@ if (lang.startsWith("zh")) {
         texts.exporttoyourpc = "手動匯出所有的好友聊天記錄到電腦（只支持最近14天）"
         texts.yourchanges = "你的好友列表變化動態"
         texts.updatefound = "發現新版本可更新！"
+        texts.nextgithubupload = "下次自動github上傳安排在："
+        texts.uploading = "上傳中："
+        texts.uploadover = "上傳完成於 "
+        texts.githubmiss = "你還沒有綁定github"
+        texts.startGithubUpload = "立刻開始github上傳"
+        texts.githubstatus = "同步到Github"
     }
 } else if (lang == "ja") {
     texts.title = "Steamフレンドとメッセージ記録"

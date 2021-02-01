@@ -1,7 +1,6 @@
 Set-Location $PSScriptRoot
 tsc.cmd --build "./tsconfig.json"
 Remove-Item -Path  "public" -Force -Recurse
-Remove-Item -Path  "public_chrome" -Force -Recurse
 Copy-Item -Path "./js/" -Destination "./public/js/" -Recurse
 Copy-Item -Path "./html/" -Destination "./public/html/" -Recurse
 Copy-Item -Path "./icons/" -Destination "./public/icons/" -Recurse

@@ -108,9 +108,11 @@ async function AutoRemindBackupChatLog() {
     }
 }
 
+let OptionTabid = -1
 let currentLogDownloader = new SteamChatLogDownloader("")
 // 和前台UI交互
 browser.runtime.onMessage.addListener(async function (m, sender) {
+    if (currentID.length != id64len) { return }
     let tab = sender.tab
     if (tab == null || tab.url == null || tab.id == null) {
         return
@@ -130,24 +132,10 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             if (showMessageLog) { console.error("这不可思议，发了个空数组到后台") }
             return
         }
-        if (str[0] == Messages.BGLogExportStat) {
-            let data: string[] = []
-            data.push(str[0])   //0
-            let st = currentLogDownloader.stat
-            data.push(st)   //1
-            if (st != SteamChatLogDownloaderStat.ready) {
-                if (st == SteamChatLogDownloaderStat.failed) {
-                    data.push(currentLogDownloader.errorMessage)      //2
-                } else {
-                    data.push(currentLogDownloader.downloadedlogs.length.toFixed()) //2
-                    let dt = new Date(currentLogDownloader.oldestTime)
-                    data.push(dt.toLocaleString())    //3
-                    data.push(currentLogDownloader.passedPages.toFixed())   //4
-                }
-            }
-            browser.tabs.sendMessage(tabid, data)
-            return
-        } else if (str[0] == Messages.startBGLogExport) {
+        if (str[0] == Messages.setTabid) {
+            OptionTabid = tabid
+        }
+        else if (str[0] == Messages.startBGLogExport) {
             currentLogDownloader = new SteamChatLogDownloader(texts.manualjob)
             currentLogDownloader.oncomplete = function () {
                 if (currentLogDownloader.stat == SteamChatLogDownloaderStat.finished) {
@@ -182,69 +170,117 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             let test = str.length > 1
             DoOnceFriendsListCheck(test, true)
         } else if (str[0] == Messages.startGithubUpload) {
-            if (isGithubWorking == false) {
-                await github.LoadTokenFromStorage()
-                RunGithubAutoJob(0)
-            }
+            await SaveLocalValue("nextupload" + currentID, 0)
+            await github.LoadTokenFromStorage()
+            RunGithubAutoJob(0)
         }
     }
 })
+
+// 定时向工作页面发送状态信息
+setInterval(function () {
+    if (OptionTabid < 0) { return }
+    browser.tabs.get(OptionTabid).then(function (tab) {
+        let data: string[] = []
+        data.push(Messages.BGLogExportStat)   //0
+        let st = currentLogDownloader.stat
+        data.push(st)   //1
+        if (st != SteamChatLogDownloaderStat.ready) {
+            if (st == SteamChatLogDownloaderStat.failed) {
+                data.push(currentLogDownloader.errorMessage)      //2
+            } else {
+                data.push(currentLogDownloader.downloadedlogs.length.toFixed()) //2
+                let dt = new Date(currentLogDownloader.oldestTime)
+                data.push(dt.toLocaleString())    //3
+                data.push(currentLogDownloader.passedPages.toFixed())   //4
+            }
+        }
+        browser.tabs.sendMessage(OptionTabid, data)
+        data = [Messages.githubStatus]  //0
+        data.push(githubStatus) //1
+        let s = ""
+        if (IsGithubReady) {
+            s = "33"
+        }
+        data.push(s) //2
+        browser.tabs.sendMessage(OptionTabid, data)
+    }).catch(function () {
+        OptionTabid = -1
+    })
+}, 1000)
 
 // 获得github的文件名，是 2020/01/15 这样的
 function GetDateFileName(dt: Date): string {
     return dt.getUTCFullYear().toString() + "/" + (dt.getUTCMonth() + 1).toString().padStart(2, "0") + "/" + (dt.getUTCDate()).toString().padStart(2, "0")
 }
 
-let isGithubWorking = false
+let IsGithubReady = false
+let githubStatus = ""
 
 //　跑一次后台自动运行导出日志并上传到github
 async function RunGithubAutoJob(retry: number, lastError: string = "") {
+    console.log("尝试运行github上传", retry, lastError)
     if (currentID.length != id64len) {
-        isGithubWorking = false
+        githubStatus = texts.needlogin
         return
     }
     if (retry > 3) {
         QuickNotice(texts.failinbackgroundupload, lastError)
-        isGithubWorking = false
+        githubStatus = texts.failinbackgroundupload + " " + lastError
         return
     }
     if (github.auth.length < 1) {
-        isGithubWorking = false
+        githubStatus = texts.githubmiss
         return
     }
     let nextupload: number = await GetLocalValue("nextupload" + currentID, 0)
     let nows = new Date().getTime()
     console.log("下一次上传时间：", nextupload)
     if (nextupload > nows) {
-        isGithubWorking = false
+        let dt = new Date(nextupload)
+        IsGithubReady = true
+        githubStatus = texts.nextgithubupload + dt.toLocaleString()
         return
     }
-    isGithubWorking = true
     console.log("重试后台上传聊天日志任务：", retry)
-    let wk = new SteamChatLogDownloader(texts.autojob)
+    let syncstart: number = await GetLocalValue("syncstart" + currentID, 0)
+    let wk = new SteamChatLogDownloader(texts.autojob, syncstart)
+    IsGithubReady = false
+    wk.onloadendpage = function () {
+        githubStatus = texts.reading + "\n" + texts.passedpages + wk.passedPages.toFixed()
+        if (retry > 0) {
+            githubStatus += "（" + texts.retry + "：" + retry.toFixed() + "）"
+        }
+    }
     wk.StartGetChatLog()
     wk.oncomplete = async function () {
         let errors = wk.errorMessage
         if (wk.stat == SteamChatLogDownloaderStat.finished) {
-            let t1 = BackgroundDownloadAndUpload(wk.downloadedlogs).catch(function (err) {
-                QuickNotice(texts.title, texts.failinbackgroundupload)
-            })
-            await t1
+            await BackgroundUpload(wk.downloadedlogs)
+            errors = lastGithubUploadError
         }
         if (errors.length > 0) {
             RunGithubAutoJob(retry + 1, errors)
         } else {
-            isGithubWorking = false
             let tomorrow = new Date
             tomorrow.setDate(tomorrow.getDate() + 1)
+            let yesterday = new Date
+            yesterday.setHours(yesterday.getHours() - 30)
+            await SaveLocalValue("syncstart" + currentID, yesterday.getTime())
             await SaveLocalValue("nextupload" + currentID, tomorrow.getTime())
+            let now = new Date
+            githubStatus = texts.uploadover + now.toLocaleString()
+            IsGithubReady = true
             console.log("后台上传任务完成")
         }
     }
 }
 
+let lastGithubUploadError = ""
+
 // 信息上传到云端，这不会上传UTC日期是今天的，最起码要昨天才行
-async function BackgroundDownloadAndUpload(logs: SteamChatMessage[]) {
+async function BackgroundUpload(logs: SteamChatMessage[]) {
+    if (logs.length < 1) { return }
     let today = GetDateFileName(new Date)
     let days = new Map<string, SteamChatMessage[]>()
     logs.sort(function (a, b) {
@@ -269,8 +305,9 @@ async function BackgroundDownloadAndUpload(logs: SteamChatMessage[]) {
     if (days.size < 1) { return }
     let uploaded: string[] = await GetLocalValue("githubuploaded" + currentID, [])
     let keys = GetMapKeys(days)
-    let index = 0
-    while (true) {
+    for (let index = 0; index < keys.length; index++) {
+        lastGithubUploadError = ""
+        githubStatus = texts.uploading + index.toFixed() + " / " + keys.length.toFixed()
         let k = keys[index]
         if (uploaded.includes(k)) {
             continue
@@ -283,8 +320,10 @@ async function BackgroundDownloadAndUpload(logs: SteamChatMessage[]) {
         let ok = await UpdateCSVtoGithub(k, csv, 0)
         if (ok) {
             uploaded.push(k)
+        } else {
+            githubStatus = texts.failinbackgroundupload + " " + lastGithubUploadError
+            return
         }
-        index += 1
         if (index >= keys.length) {
             break
         }
@@ -303,6 +342,7 @@ async function UpdateCSVtoGithub(filename: string, csv: string, retry: number): 
     let t1 = github.GetOnlineFileSHA(filename).then(function (v1) {
         sha = v1
     }).catch(function (err) {
+        lastGithubUploadError = err
         console.error("github 获取sha出错：", err)
         errors = err
     })
@@ -312,6 +352,7 @@ async function UpdateCSVtoGithub(filename: string, csv: string, retry: number): 
     }
     t1 = github.CreateOrUpdateTextFile(filename, csv, sha).then(function () {
     }).catch(function (err) {
+        lastGithubUploadError = err
         console.error("github 上传文件出错：", err)
         errors = err
     })

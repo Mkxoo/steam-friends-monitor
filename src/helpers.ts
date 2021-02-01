@@ -86,6 +86,8 @@ const SteamChatLogDownloaderStat = {
 
 // 内部发送的消息头
 const Messages = {
+    setTabid: "settabid",
+    githubStatus: "githubStatus",
     BGLogExportStat: "BGLogExportStat",
     startBGLogExport: "startBGLogExport",
     downloadBGLogExport: "downloadBGLogExport",

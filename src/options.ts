@@ -1,16 +1,15 @@
 
-//向后台发消息，询问导出的怎么样了
-setInterval(function () {
-    if (!logined) { return }
-    browser.runtime.sendMessage([Messages.BGLogExportStat])
-}, 900)
-
 let exportpanel = GetElementByID("exportpanel")
 let oldexportStat = ""
 let logined = false
 let autoremindchatlog = 0;
 
+setInterval(function () {
+    browser.runtime.sendMessage([Messages.setTabid])
+}, 900);
+
 (async function () {
+
     let id = await GetCurrentIDFromCookie()
     if (id.length < id64len) {
         id = texts.needlogin
@@ -24,12 +23,13 @@ let autoremindchatlog = 0;
     }
     id += "\n"
     let currentidpanel = GetElementByID("currentidpanel")
-    currentidpanel.innerText = id
+    currentidpanel.innerText = id 
     if (!logined) {
         AddButton(currentidpanel, texts.clicktologin, function () {
             location.href = "https://steamcommunity.com/login/home/?goto="
         })
     } else {
+        browser.runtime.sendMessage([Messages.setTabid])
         autoremindchatlog = await GetLocalValue("nextremind" + currentID, 0)
         let str = ""
         if (autoremindchatlog > 0) {
@@ -167,6 +167,8 @@ function AddButton(parent: HTMLElement, text: string, onclick: (this: HTMLButton
         parent.appendChild(br)
     }
 }
+let lastGithubready = false
+let lastGithubStatue = "cxvidiuiromcnjc"
 
 browser.runtime.onMessage.addListener(async function (m, sender) {
     if (!logined) { return }
@@ -240,6 +242,25 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
                 }
             }
             return
+        } else if (strs[0] == Messages.githubStatus) {
+            let st = strs[1]
+            let ready = strs[2].length > 0
+            let changedready = false
+            if (lastGithubready != ready) {
+                lastGithubready = ready
+                changedready = true
+            }
+            let githubstatusdiv = GetElementByID("githubstatusdiv")
+            if (st != lastGithubStatue) {
+                githubstatusdiv.innerText = st
+                lastGithubStatue = st
+            }
+            if (changedready && ready) {
+                AddButton(githubstatusdiv, texts.startGithubUpload, function () {
+                    browser.runtime.sendMessage([Messages.startGithubUpload])
+                    this.remove()
+                })
+            }
         }
     }
 })

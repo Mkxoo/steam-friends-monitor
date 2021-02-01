@@ -176,10 +176,15 @@ async function GetEveryID64ByURL() {
 
 // Steam聊天记录下载器，使用之前务必登录先
 class SteamChatLogDownloader {
-    //新建实例的时候要设置结束日期，不设置就是获取20天（官方实际为最多14天）
+    //title 是工作标题，stops是停止时间，表示如果翻到那一页已经到了这个时间，就可以停止了
     constructor(title: string, stops: number = 0) {
         this.stops = stops
         this.title = title
+        console.log("新实例 SteamChatLogDownloader ，标题是：", title, stops)
+        if (stops > 9999) {
+            let dt = new Date(stops)
+            console.log("采集时间截至是：", dt.toLocaleString())
+        }
     }
     title: string = ""
     stops: number = 0
@@ -189,10 +194,12 @@ class SteamChatLogDownloader {
     waitURLs: string[] = []
     stat: string = SteamChatLogDownloaderStat.ready
     oncomplete: () => void = function () { }
+    onloadendpage: () => void = function () { }
     errorMessage: string = ""
 
     PushToDownloaded(array: SteamChatMessage[]) {
         let me = this
+        let timeup = false
         array.forEach(function (v) {
             me.downloadedlogs.push(v)
             me.oldestTime = v.UTCTime
@@ -245,6 +252,7 @@ class SteamChatLogDownloader {
                     me.SetError(texts.nochatlog)
                     return
                 }
+                me.onloadendpage()
                 let r = new RegExp("data-continuevalue=\"([0-9_]+)\"", "gim")
                 let results = r.exec(html)
                 if (results != null) {
@@ -282,8 +290,13 @@ class SteamChatLogDownloader {
                 if (data.continue == null) {
                     console.log("没有continue了，应该是到头了", me)
                     me.ReplaceAllURLtoID64()
-                } else {
+                } else if (me.stops > 9999 && me.oldestTime < me.stops) {
+                    console.log("时间已经达到设置的坐标尽头，就地停止", me)
+                    me.ReplaceAllURLtoID64()
+                }
+                else {
                     ct = data.continue
+                    me.onloadendpage()
                     setTimeout(function () {
                         me.LoadNextPage(ct, 0)
                     }, 500)
