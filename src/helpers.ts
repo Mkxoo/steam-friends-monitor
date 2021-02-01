@@ -89,7 +89,8 @@ const Messages = {
     BGLogExportStat: "BGLogExportStat",
     startBGLogExport: "startBGLogExport",
     downloadBGLogExport: "downloadBGLogExport",
-    gocheckfriendslist: "gocheckfriendslist"
+    gocheckfriendslist: "gocheckfriendslist",
+    startGithubUpload: "startGithubUpload"
 }
 
 // 根据ID返回html元素，如果不存在就throw

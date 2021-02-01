@@ -36,14 +36,14 @@
     await DoOnceFriendsListCheck()
     await github.LoadTokenFromStorage()
     await AutoRemindBackupChatLog()
-    await DownloadAllAndUploadAll(0)
+    await RunGithubAutoJob(0)
     setInterval(async function () {
         let id = await GetCurrentIDFromCookie()
         if (id.length == id64len) {
             await DoOnceFriendsListCheck()
             await github.LoadTokenFromStorage()
             await AutoRemindBackupChatLog()
-            await DownloadAllAndUploadAll(0)
+            await RunGithubAutoJob(0)
         }
     }, 1000 * 60 * 60)
 })();
@@ -181,6 +181,11 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
         } else if (str[0] == Messages.gocheckfriendslist) {
             let test = str.length > 1
             DoOnceFriendsListCheck(test, true)
+        } else if (str[0] == Messages.startGithubUpload) {
+            if (isGithubWorking == false) {
+                await github.LoadTokenFromStorage()
+                RunGithubAutoJob(0)
+            }
         }
     }
 })
@@ -190,21 +195,31 @@ function GetDateFileName(dt: Date): string {
     return dt.getUTCFullYear().toString() + "/" + (dt.getUTCMonth() + 1).toString().padStart(2, "0") + "/" + (dt.getUTCDate()).toString().padStart(2, "0")
 }
 
+let isGithubWorking = false
+
 //　跑一次后台自动运行导出日志并上传到github
-async function DownloadAllAndUploadAll(retry: number, lastError: string = "") {
-    if (currentID.length != id64len) { return }
+async function RunGithubAutoJob(retry: number, lastError: string = "") {
+    if (currentID.length != id64len) {
+        isGithubWorking = false
+        return
+    }
     if (retry > 3) {
         QuickNotice(texts.failinbackgroundupload, lastError)
+        isGithubWorking = false
+        return
     }
     if (github.auth.length < 1) {
+        isGithubWorking = false
         return
     }
     let nextupload: number = await GetLocalValue("nextupload" + currentID, 0)
     let nows = new Date().getTime()
     console.log("下一次上传时间：", nextupload)
     if (nextupload > nows) {
+        isGithubWorking = false
         return
     }
+    isGithubWorking = true
     console.log("重试后台上传聊天日志任务：", retry)
     let wk = new SteamChatLogDownloader(texts.autojob)
     wk.StartGetChatLog()
@@ -212,13 +227,14 @@ async function DownloadAllAndUploadAll(retry: number, lastError: string = "") {
         let errors = wk.errorMessage
         if (wk.stat == SteamChatLogDownloaderStat.finished) {
             let t1 = BackgroundDownloadAndUpload(wk.downloadedlogs).catch(function (err) {
-                errors = err
+                QuickNotice(texts.title, texts.failinbackgroundupload)
             })
             await t1
         }
         if (errors.length > 0) {
-            DownloadAllAndUploadAll(retry + 1, errors)
+            RunGithubAutoJob(retry + 1, errors)
         } else {
+            isGithubWorking = false
             let tomorrow = new Date
             tomorrow.setDate(tomorrow.getDate() + 1)
             await SaveLocalValue("nextupload" + currentID, tomorrow.getTime())
@@ -264,28 +280,44 @@ async function BackgroundDownloadAndUpload(logs: SteamChatMessage[]) {
             continue
         }
         let csv = BuildCSV(v, false)
-        let sha = ""
-        let errors = ""
-        let t1 = github.GetOnlineFileSHA(k).then(function (v1) {
-            sha = v1
-        }).catch(function (err) {
-            console.error("github 获取sha出错：", err)
-            errors = err
-        })
-        await t1
-        if (errors.length > 0) { throw errors }
-        t1 = github.CreateOrUpdateTextFile(k, csv, sha).then(function () {
+        let ok = await UpdateCSVtoGithub(k, csv, 0)
+        if (ok) {
             uploaded.push(k)
-        }).catch(function (err) {
-            console.error("github 上传文件出错：", err)
-            errors = err
-        })
-        await t1
-        if (errors.length > 0) { throw errors }
+        }
         index += 1
         if (index >= keys.length) {
             break
         }
     }
     await SaveLocalValue("githubuploaded" + currentID, uploaded)
+}
+
+// 上传到CSV，会内部自动反复重试，最多试3次，返回是否成功
+async function UpdateCSVtoGithub(filename: string, csv: string, retry: number): Promise<boolean> {
+    if (retry > 3) {
+        console.error("重试次数过多，放弃了：", filename)
+        return false
+    }
+    let sha = ""
+    let errors = ""
+    let t1 = github.GetOnlineFileSHA(filename).then(function (v1) {
+        sha = v1
+    }).catch(function (err) {
+        console.error("github 获取sha出错：", err)
+        errors = err
+    })
+    await t1
+    if (errors.length > 0) {
+        return await UpdateCSVtoGithub(filename, csv, retry + 1)
+    }
+    t1 = github.CreateOrUpdateTextFile(filename, csv, sha).then(function () {
+    }).catch(function (err) {
+        console.error("github 上传文件出错：", err)
+        errors = err
+    })
+    await t1
+    if (errors.length > 0) {
+        return await UpdateCSVtoGithub(filename, csv, retry + 1)
+    }
+    return true
 }

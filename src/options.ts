@@ -76,9 +76,12 @@ let autoremindchatlog = 0;
             if (github.auth.length > 3) {
                 github.ListBranchs().then(function (v) {
                     QuickNotice(texts.githubtestgood, texts.githubbranchtest + v.length.toString())
+                    browser.runtime.sendMessage([Messages.startGithubUpload])
+                    console.log("github 测试成功，开始直接导入数据")
                 }).catch(function (err) {
                     if (err == null) { err = "null" }
                     QuickNotice(texts.githubtestfail, texts.githuberror + err)
+                    console.error("github 测试失败", err)
                 })
             }
             alert(str)

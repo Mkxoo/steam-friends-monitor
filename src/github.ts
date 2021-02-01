@@ -66,7 +66,7 @@ const github = {
         x.setRequestHeader("Authorization", this.auth)
         x.timeout = 5000
         console.log("github 尝试上传或更新文件 ", path, content.length, sha)
-        let p = new Promise<void>(function (resolve, reject) {
+        let p = new Promise<void>(function (resolve, reject) {  
             x.onloadend = function () {
                 if (this.status == 200 || this.status == 201) {
                     console.log("github 上传成功", path, this.status)
