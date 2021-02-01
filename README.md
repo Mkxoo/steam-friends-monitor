@@ -18,7 +18,7 @@ https://addons.mozilla.org/firefox/addon/sfm/
 
 # 截图 Screenshots
 ![](https://s3.ax1x.com/2021/02/01/yZHDU0.png)  
-![](https://s3.ax1x.com/2021/02/01/yZH1Et.png)  
+![](https://s3.ax1x.com/2021/02/02/ymCDDx.png)  
 
 # 引用的第三方库
 - [base64-js](https://github.com/beatgammit/base64-js)   
