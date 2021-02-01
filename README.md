@@ -15,3 +15,6 @@ I can scan your steam friends list and tell you if anyone deletes you or someone
 npm install    #two @types packages are needed.
 build_pack.ps1  #it use 7z to pack our ext.
 ```
+
+# 特别鸣谢
+- [0xAA55](https://www.0xaa55.com/)：提供了日语翻译，以及提供了让我活下去的地方，要不是她，我可能已经被父母送进精神病院长期不能接触电子设备了  

@@ -18,31 +18,11 @@ async function SaveLocalValue(name: string, v: any) {
     return browser.storage.local.set(input)
 }
 
-let lastnotice = ""
-let clearLastNotice = 0
-setInterval(function () {
-    if (clearLastNotice < 1000) { return }
-    let nows = new Date
-    if (nows.getTime() > clearLastNotice) {
-        lastnotice = ""
-        clearLastNotice = 0
-    }
-}, 1000)
-
 //　向用户发送简单的推送
 function QuickNotice(tt: string, s: string) {
-    let vv = tt + s
-    if (lastnotice == vv) {
-        console.error("尝试推送被拒绝，发送过快：", tt, s)
-        return
-    }
     console.log("推送：", tt, s)
     let img = browser.extension.getURL("icons/main.png")
     browser.notifications.create({ title: tt, type: "basic", message: s, iconUrl: img })
-    lastnotice = vv
-    let dt = new Date
-    dt.setMinutes(dt.getMinutes() + 1)
-    clearLastNotice = dt.getTime()
 }
 
 // 复制一个数组
