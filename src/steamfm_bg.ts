@@ -1,8 +1,36 @@
 
+// 检测更新
+(function () {
+    let x = new XMLHttpRequest
+    x.open("GET", "https://api.github.com/repos/gordonwalkedby/steam-friends-monitor/releases")
+    x.onloadend = function () {
+        if (this.status == 200) {
+            let j = this.responseText
+            let obj = JSON.parse(j)
+            let str: string = obj[0].tag_name
+            str = str.replace(/v/gim, "")
+            let v = VerStr2Num(str)
+            if (!(v > 1)) {
+                console.error("不正常的版本号：", v, str)
+            }
+            SaveLocalValue("newversion", v)
+            console.log("检测更新：", str, v)
+            let now = VerStr2Num(browser.runtime.getManifest().version)
+            if (v > now) {
+                QuickNotice(texts.title, texts.updatefound + " v" + str)
+            }
+        } else {
+            console.error("检测更新出错：", this.status)
+        }
+    }
+    x.send()
+})();
+
 //　工作的基本流程
 (async function () {
-    browser.notifications.onClicked.addListener(function () {
-        browser.runtime.openOptionsPage()
+    browser.notifications.onClicked.addListener(function (id: string) {
+        console.log("点击了弹窗", id)
+        OpenOptionPage()
     })
     GetEveryID64ByURL()
     await DoOnceFriendsListCheck()
@@ -18,7 +46,23 @@
             await DownloadAllAndUploadAll(0)
         }
     }, 1000 * 60 * 60)
-})()
+})();
+
+// 打开 options.html
+async function OpenOptionPage() {
+    let url = browser.extension.getURL("html/options.html")
+    let tabs = await browser.tabs.query({ currentWindow: true })
+    tabs.forEach(function (v) {
+        if (v.id != null && v.url != null) {
+            if (v.url.startsWith(url)) {
+                browser.tabs.remove(v.id)
+            }
+        }
+    })
+    browser.tabs.create({ url: url, active: true })
+}
+
+browser.browserAction.onClicked.addListener(OpenOptionPage)
 
 // 更新定期提醒的时间
 async function UpdateRemindBackupChatLog() {
@@ -139,20 +183,6 @@ browser.runtime.onMessage.addListener(async function (m, sender) {
             DoOnceFriendsListCheck(test, true)
         }
     }
-})
-
-// 按图标打开 options.html
-browser.browserAction.onClicked.addListener(async function () {
-    let url = browser.extension.getURL("html/options.html")
-    let tabs = await browser.tabs.query({ currentWindow: true })
-    tabs.forEach(function (v) {
-        if (v.id != null && v.url != null) {
-            if (v.url.startsWith(url)) {
-                browser.tabs.remove(v.id)
-            }
-        }
-    })
-    browser.tabs.create({ url: url, active: true })
 })
 
 // 获得github的文件名，是 2020/01/15 这样的

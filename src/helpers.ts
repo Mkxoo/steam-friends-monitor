@@ -2,6 +2,16 @@ const id64len = 17
 let currentID = ""
 let showMessageLog = false
 
+function VerStr2Num(v: string): number {
+    let reg = new RegExp("([0-9]+)\.([0-9]+)")
+    let results = reg.exec(v)
+    if (results == null) { return 0 }
+    let v1 = parseInt(results[1])
+    let v2 = parseInt(results[2])
+    let out = v1 * 100000 + v2
+    return out
+}
+
 //根据名字，获取一个存储在storage.local的值
 async function GetLocalValue(name: string, fallback: any = null): Promise<any> {
     let vv = await browser.storage.local.get(name)

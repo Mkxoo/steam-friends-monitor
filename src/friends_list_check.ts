@@ -101,6 +101,32 @@ async function GetFriendsListFromOnline(): Promise<string[]> {
     return p
 }
 
+// 判断是否真的丢失了这个好友
+async function CheckIfRealLostFriend(id64: string): Promise<boolean> {
+    if (id64.startsWith("23")) {
+        return true
+    }
+    await Sleep(400)
+    let p = new Promise<boolean>(function (resolve, rejct) {
+        let x = new XMLHttpRequest
+        x.open("GET", "https://steamcommunity.com/profiles/" + id64)
+        x.onloadend = function () {
+            if (this.status == 200) {
+                if (this.responseText.includes("href=\"javascript:OpenFriendChat(")) {
+                    resolve(false)
+                    console.error("居然不是真的丢失了这个好友：", id64)
+                } else {
+                    resolve(true)
+                }
+            } else {
+                console.error("请求出错，无法检测是否真的丢失好友：", id64, x.status)
+                resolve(false)
+            }
+        }
+    })
+    return p
+}
+
 // 更新一个日志到存储里
 async function UpdateFriendsChangeLog(log: FriendsChangeLog) {
     if (currentID.length == id64len) {
@@ -152,6 +178,15 @@ async function DoOnceFriendsListCheck(test: boolean = false, manual: boolean = f
                 olds.forEach(function (v2) {
                     log.losts.push(v2)
                 })
+                let realLost: string[] = []
+                for (let i = 0; i < log.losts.length; i++) {
+                    let id = log.losts[i]
+                    let isreal = await CheckIfRealLostFriend(id)
+                    if (isreal) {
+                        realLost.push(id)
+                    }
+                }
+                log.losts = realLost
             }
             if (changed) {
                 let str = ""

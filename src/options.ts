@@ -143,6 +143,13 @@ let autoremindchatlog = 0;
             }
         }
     }
+    let newv: number = await GetLocalValue("newversion", 0)
+    let nowv: number = VerStr2Num(browser.runtime.getManifest().version)
+    if (newv > nowv) {
+        let Aupdate = GetElementByID("Aupdate")
+        Aupdate.style.display = "inline-block"
+    }
+    document.title = texts.title
 })()
 
 function AddButton(parent: HTMLElement, text: string, onclick: (this: HTMLButtonElement) => void, addline: boolean = false) {

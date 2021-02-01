@@ -1,5 +1,6 @@
 
 let texts = {
+    title: "Steam Friends Monitor",
     needlogin: "You didn't login steam in this browser. You should login first.",
     closeRemind: "Disable Backup Reminder",
     openRemind: "Enable Backup Reminder",
@@ -67,7 +68,9 @@ let texts = {
     madeby: "Made by Gordon Walkedby",
     sourcecode: "Source Code",
     exporttoyourpc: "Export your chat log (14 days from today)",
-    yourchanges: "Your steam friends list changes"
+    yourchanges: "Your steam friends list changes",
+    updatefound: "New Version Found!",
+    goupdate: "Goto Download New Version"
 };
 
 let lang = window.navigator.language.toLowerCase()
@@ -75,6 +78,8 @@ let lang = window.navigator.language.toLowerCase()
 if (lang.startsWith("zh")) {
     if (lang == "zh-cn" || lang == "zh-sg") {
         //简体中文
+        texts.goupdate = "点我下载更新"
+        texts.title = "Steam好友与聊天记录器"
         texts.needlogin = "尚未登录Steam，无法工作。请先去登录Steam，再回到本页面（需要刷新）。"
         texts.closeRemind = "关闭定期备份提醒"
         texts.openRemind = "开启定期备份提醒"
@@ -143,7 +148,11 @@ if (lang.startsWith("zh")) {
         texts.sourcecode = "源代码"
         texts.exporttoyourpc = "手动导出所有的好友聊天记录到电脑（只支持最近14天）"
         texts.yourchanges = "你的好友列表变化动态"
+        texts.updatefound = "发现新版本可更新！"
     } else {
+        texts.title = "Steam好友與聊天記錄器"
+        texts.updatefound = "發現新版本可更新！"
+        texts.goupdate = "點我下載更新"
         texts.needlogin = "尚未登錄Steam，無法工作。請先去登錄Steam，再回到本頁面（需要重新载入頁面）。"
         texts.closeRemind = "關閉定期備份提醒"
         texts.openRemind = "開啟定期備份提醒"
@@ -212,8 +221,12 @@ if (lang.startsWith("zh")) {
         texts.sourcecode = "源代碼"
         texts.exporttoyourpc = "手動匯出所有的好友聊天記錄到電腦（只支持最近14天）"
         texts.yourchanges = "你的好友列表變化動態"
+        texts.updatefound = "發現新版本可更新！"
     }
 } else if (lang == "ja") {
+    texts.title = "Steamフレンドとメッセージ記録"
+    texts.goupdate = "アップデートはこち！"
+    texts.updatefound = "アップデートを利用はできます！"
     texts.needlogin = "Steamアカウントをログインしてください。"
     texts.closeRemind = "バックアップリマインダーを無効化にします"
     texts.openRemind = "バックアップリマインダーを有効化にします"
@@ -281,7 +294,7 @@ if (lang.startsWith("zh")) {
     texts.madeby = "Made by Gordon Walkedby"
     texts.sourcecode = "ソースコード"
     texts.exporttoyourpc = "Steamチャットログ書き出し（14日で1回）"
-    texts.yourchanges = "Steamフレンドリストが変化しました。"
+    texts.yourchanges = "Steamフレンドリストが変化"
 }
 
 (function () {
